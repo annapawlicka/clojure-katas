@@ -21,25 +21,41 @@
     911575349    9 ;; " | ___ ||"
     "?")) ;; illegible number
 
+(defn split-vertically
+  "Splits sequence of 3 strings vertically returning a single sequence of
+  stringified columns, e.g.
+  [\" _ \"
+   \"| |\"
+   \"|_|\"] -> '(\" ||\", \"_ _\", \" ||\") "
+  [entry]
+  (->> (map seq entry)
+       (apply map str)))
+
+(defn columns->single-symbol
+  "Takes a sequence of columns, reads them in groups of 3 (width of a digit),
+  and returns a sequence of stringified symbols, e.g.
+  '(\" ||\" \"_ _\" \" ||\" \"   \" \"_  \" \" ||\") -> '(\" ||_ _ ||\" \"   _   ||\")"
+  [columns-seq]
+  (->> (partition 3 columns-seq)
+       (map #(apply str %))))
+
 (defn parse-entry
   "Gets a sequence of 3 strings where each string represents single line, e.g.
   [\" _  _  _  _  _  _  _  _  _\"
    \"| || || || || || || || || |\"
    \"|_||_||_||_||_||_||_||_||_|\"]
   Each digit is 3 chars wide and 3 lines high. Processes lines vertically and returns
-  a sequence of string, where each string is a symbolic representation of a digit, e.g.
+  a sequence of strings, where each string is a symbolic representation of a digit, e.g.
   \" ||_  _ ||\""
   [entry]
-  (->> (map seq entry)
-       (apply map str)
-       (partition 3)
-       (map #(apply str %))))
+  (-> (split-vertically entry)
+      (columns->single-symbol)))
 
 (defn process-entry
   "Gets a sequence of 4 strings (an entry) where each string represents a line.
    Parses those lines into digits."
   [lines]
-  (->> (parse-entry (butlast lines))
+  (->> (parse-entry (butlast lines)) ;; drop last (empty) line
        (map get-digit)
        (apply str)))
 
@@ -51,13 +67,21 @@
                 (partition 4)
                 (map process-entry)))))
 
-;; User Story 2
+;; User Story
+
+(defn all-numbers?
+  "Checks is all items are numbers. Returns nil if they're not,
+  otherwise returns that sequence."
+  [num-seq]
+  (when (every? number? num-seq)
+    num-seq))
 
 (defn str->seq
   "Converts account number string to a sequence of numbers"
   [s]
   (->> (seq s)
-       (map #(-> % str (edn/read-string))))) ;; character literal -> string -> int
+       (map #(-> % str (edn/read-string)))  ;; character literal -> string -> int
+       (all-numbers?)))
 
 (defn reverse-and-multiply
   "Reverses the sequence and multiplies each item by its idx + 1."
@@ -72,8 +96,8 @@
       (mod 11)))
 
 (defn valid-checksum?
-  "Gets a sequence of digits and returns true if it passes
-  checksum validation, otherwise returns false.
+  "Gets a sequence of digits and returns true if all items are numbers
+  and it passes checksum validation, otherwise returns false.
   Validation is calculates as follows:
    account number:  3  4  5  8  8  2  8  6  5
    position names:  d9 d8 d7 d6 d5 d4 d3 d2 d1
@@ -81,10 +105,11 @@
    checksum calculation:
    ((1*d1) + (2*d2) + (3*d3) + ... + (9*d9)) mod 11 == 0"
   [account-number]
-  (->> (str->seq account-number)
-       reverse-and-multiply
-       (sum-and-mod)
-       (= 0)))
+  (when-let [number-seq (str->seq account-number)]
+    (->> number-seq
+         reverse-and-multiply
+         (sum-and-mod)
+         (= 0))))
 
 ;; User story 3
 

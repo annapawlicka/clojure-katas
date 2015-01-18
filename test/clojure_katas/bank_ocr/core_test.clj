@@ -3,6 +3,45 @@
             [clojure-katas.bank-ocr.core :refer :all]
             [clojure.string :as str]))
 
+(deftest get-digit-test
+  (testing "Testing getting digit."
+    (is (= 0 (get-digit " ||_ _ ||")))
+    (is (= "?" (get-digit " ||_ _ || |")))
+    (is (= "?" (get-digit "")))))
+
+(deftest split-vertically-test
+  (testing "Testing splitting vertically."
+    (is (= '(" ||" "_ _" " ||" " ||" "_ _" " ||" " ||" "_ _" " ||" " ||" "_ _" " ||" " ||" "_ _" " ||"
+             " ||" "_ _" " ||" " ||" "_ _" " ||" " ||" "_ _" " ||" " ||" "_ _")
+           (split-vertically [" _  _  _  _  _  _  _  _  _"
+                              "| || || || || || || || || |"
+                              "|_||_||_||_||_||_||_||_||_|"])))
+    (is (= '("   " "___" " ||")
+         (split-vertically [" _ "
+                            " _|"
+                            " _|"])))))
+
+(deftest columns->single-symbol-test
+  (testing "Testing turning columns into digits."
+    (is (= '(" ||_ _ ||")
+           (columns->single-symbol '(" ||" "_ _" " ||"))))
+    (is (= '(" ||_ _ ||" "   _   ||")
+           (columns->single-symbol '(" ||" "_ _" " ||" "   " "_  " " ||"))))))
+
+(deftest parse-entry-test
+  (testing "Testing parsing of entries."
+    (is (= '(" ||_ _ ||" "    ||___")
+         (parse-entry [" _   _ "
+                       "| | |_|"
+                       "|_| |_|"])))))
+
+(deftest process-entry-test
+  (testing "Testing processing entry into digit."
+    (is (= "8" (process-entry [" _ "
+                               "|_|"
+                               "|_|"
+                               "   "])))))
+
 (deftest scan-test
   (testing "Testing scanning"
     (is (= (list "000000000" "111111111" "222222222"
@@ -12,13 +51,24 @@
            (scan "resources/bank_ocr/user_story_1.txt")))
     (is (= "000000000" (-> (str/split-lines " _  _  _  _  _  _  _  _  _ \n| || || || || || || || || |\n|_||_||_||_||_||_||_||_||_|\n                           \n")
                            process-entry)))))
+
+(deftest all-numbers?-test
+  (testing "Testing whether all items are numbers"
+    (is (not (all-numbers? [1 2 "?" 3 6])))
+    (is (= [1 2 3] (all-numbers? [1 2 3])))))
+
 (deftest str->seq-test
-  (testing "Convert accoutn number string to a sequence of numbers."
+  (testing "Convert account number string to a sequence of numbers."
     (is (= [7 1 1 1 1 1 1 1 1] (str->seq "711111111")))))
+
 
 (deftest reverse-and-multiply-test
   (testing "Reversing and multiplying sequence of numbers."
     (is (= [1 2 3 4 5 6 7 8 63] (reverse-and-multiply [7 1 1 1 1 1 1 1 1])))))
+
+(deftest sum-and-mod-test
+  (testing "Testing adding all items together and calulating modulus of 11 and the sum."
+    (is (= 0 (sum-and-mod [1 2 3 4 5 6 7 8 63])))))
 
 (deftest valid-checksum-test
   (testing "Testing checksum validation"
@@ -27,7 +77,8 @@
     (is (valid-checksum? "490867715"))
     (is (not (valid-checksum? "888888888")))
     (is (not (valid-checksum? "490067715")))
-    (is (not (valid-checksum? "012345678")))))
+    (is (not (valid-checksum? "012345678")))
+    (is (not (valid-checksum? "0?1233565")))))
 
 (deftest annotate-test
   (testing "Testing annotation"
